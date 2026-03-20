@@ -43,15 +43,15 @@ MAP_FATHER_JOB = {
 # --- 4. UI HEADER ---
 st.title("🎓 Student Dropout Prediction")
 st.markdown("### Jaya Jaya Institut Monitoring System")
-st.info("Prediksi ini menggunakan 10 fitur utama yang paling berpengaruh terhadap keberhasilan mahasiswa.")
+st.info("Prediksi ini menggunakan fitur utama yang paling berpengaruh terhadap keberhasilan mahasiswa.")
 st.divider()
 
 if model_data is None:
-    st.error(" File model atau scaler tidak ditemukan di folder 'Model/'. Pastikan path sudah benar.")
+    st.error("File model atau scaler tidak ditemukan di folder 'Model/'. Pastikan path sudah benar.")
 else:
     # --- 5. INPUT FORM ---
     with st.form("prediction_form"):
-        st.subheader(" Data Input Mahasiswa")
+        st.subheader("Data Input Mahasiswa")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -60,6 +60,7 @@ else:
             father_job = st.selectbox("Pekerjaan Ayah", list(MAP_FATHER_JOB.keys()))
             adm_grade = st.number_input("Nilai Admission (Masuk)", 0.0, 200.0, 120.0)
             age = st.slider("Usia Saat Pendaftaran", 17, 60, 20)
+            tuition_fees = st.radio("Uang Kuliah Lunas (Up to date)?", ["Ya", "Tidak"])
 
         with col2:
             sem1_approved = st.number_input("Unit Semester 1 Disetujui", 0, 30, 5)
@@ -72,13 +73,13 @@ else:
 
     # --- 6. PROSES PREDIKSI ---
     if submit:
-        # URUTAN SANGAT KRUSIAL: Harus sama persis dengan 'Fitur yang diharapkan model'
         expected_columns = [
             'Course',
             'Previous_qualification_grade',
             'Fathers_occupation',
             'Admission_grade',
             'Age_at_enrollment',
+            'Tuition_fees_up_to_date', 
             'Curricular_units_1st_sem_approved',
             'Curricular_units_1st_sem_grade',
             'Curricular_units_2nd_sem_evaluations',
@@ -86,13 +87,13 @@ else:
             'Curricular_units_2nd_sem_grade'
         ]
 
-        # Membuat dictionary data input
         input_data = {
             'Course': MAP_COURSE[course],
             'Previous_qualification_grade': prev_grade,
             'Fathers_occupation': MAP_FATHER_JOB[father_job],
             'Admission_grade': adm_grade,
             'Age_at_enrollment': age,
+            'Tuition_fees_up_to_date': 1 if tuition_fees == "Ya" else 0,
             'Curricular_units_1st_sem_approved': sem1_approved,
             'Curricular_units_1st_sem_grade': sem1_grade,
             'Curricular_units_2nd_sem_evaluations': sem2_eval,
@@ -100,8 +101,9 @@ else:
             'Curricular_units_2nd_sem_grade': sem2_grade
         }
 
-        # Konversi ke DataFrame dan PAKSA urutan kolom
         df_input = pd.DataFrame([input_data])
+        
+        # Memaksa urutan kolom agar sesuai dengan expected_columns
         df_input = df_input[expected_columns]
 
         try:
@@ -111,17 +113,14 @@ else:
             
             st.divider()
             
-            # Menampilkan Hasil (Asumsi: 0=Dropout, 1=Enrolled, 2=Graduate)
+            # Mapping Hasil Prediksi (Sesuaikan dengan label encoding di notebook)
             if prediction[0] == 0:
-                st.error("###  Hasil: Berisiko Tinggi DROPOUT")
-                st.info("**Saran:** Mahasiswa memerlukan pendampingan akademik khusus.")
-            elif prediction[0] == 1:
-                st.warning("### Hasil: Berstatus ENROLLED (Dalam Pemantauan)")
-                st.write("Mahasiswa masih aktif, namun perlu menjaga performa di semester berikutnya.")
+                st.error("### Hasil: Berisiko Tinggi DROPOUT")
+                st.info("**Rekomendasi:** Berikan bimbingan konseling dan bantuan finansial/akademik segera.")
             else:
-                st.success("### Hasil: Berpotensi Lulus (GRADUATE)")
+                st.success("### Hasil: Berpotensi LULUS (GRADUATE)")
                 st.balloons()
                 
         except Exception as e:
             st.error(f"Terjadi kesalahan saat pemrosesan: {e}")
-            st.write("Urutan fitur yang dikirim ke model:", df_input.columns.tolist())
+            st.write("Cek urutan kolom ini di Notebook kamu:", df_input.columns.tolist())
